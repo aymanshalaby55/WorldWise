@@ -1,12 +1,16 @@
-// "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=0&longitude=0"
+// 
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import styles from "./Form.module.css";
 import Button from "./Button";
 import { useNavigate } from "react-router-dom";
 import BackButton from "./BackButton";
+import Spinner from "./Spinner";
 
+import useUrlPosition from "../hooks/useUrlPosition";
+
+const BaseURL = "https://api.bigdatacloud.net/data/reverse-geocode-client"
 export function convertToEmoji(countryCode) {
   const codePoints = countryCode
     .toUpperCase()
@@ -16,14 +20,55 @@ export function convertToEmoji(countryCode) {
 }
 
 function Form() {
+  const [mapLat, mapLng] = useUrlPosition();
   const navigate = useNavigate();
   const [cityName, setCityName] = useState("");
   const [country, setCountry] = useState("");
   const [date, setDate] = useState(new Date());
   const [notes, setNotes] = useState("");
+  const [emoji, setEmoji] = useState("");
+  
+  const [isLoadingGecoding, setIsLoadingGecoding] = useState(false);
+  const [error, setError] = useState("");
 
+  useEffect(function () {
+    if (!mapLat || !mapLng) return;
+    
+    async function fetchCityData() {
+      try {
+        setIsLoadingGecoding(true);
+        setError("");
+        const res = await fetch(`${BaseURL}?latitude=${mapLat}&longitude=${mapLng}`);
+        const data = await res.json();
+        console.log(data);
+        
+        if (!data.countryCode) {
+          throw new Error("That doesn't seem to be a valid location. Click somewhere else!");
+        }
+        
+        setCityName(data.city || data.locality || "");
+        setCountry(data.countryName || "");
+        setEmoji(convertToEmoji(data.countryCode));
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setIsLoadingGecoding(false);
+      }
+    }
+    
+    fetchCityData();
+  }, [mapLat, mapLng]);
+
+  if(isLoadingGecoding){
+    return <Spinner/>
+  }
+  if(error){
+    return <div className={styles.error}>{error}</div>
+  }
   return (
     <form className={styles.form}>
+
       <div className={styles.row}>
         <label htmlFor="cityName">City name</label>
         <input
@@ -31,7 +76,7 @@ function Form() {
           onChange={(e) => setCityName(e.target.value)}
           value={cityName}
         />
-        {/* <span className={styles.flag}>{emoji}</span> */}
+        <span className={styles.flag}>{emoji}</span>
       </div>
 
       <div className={styles.row}>
@@ -54,7 +99,7 @@ function Form() {
 
       <div className={styles.buttons}>
         <Button type={"primary"}>Add</Button>
-        <BackButton/>
+        <BackButton />
       </div>
     </form>
   );
