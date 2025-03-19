@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./CityItem.module.css";
 import { useCities } from "../context/CitiesContext";
+import PropTypes from "prop-types";
 
 const formatDate = (date) =>
   new Intl.DateTimeFormat("en", {
@@ -11,10 +12,14 @@ const formatDate = (date) =>
   }).format(new Date(date));
 
 function CityItem({ city }) {
-  const { currentCity } = useCities();
+  const { currentCity,deleteCity } = useCities();
   const { cityName, emoji, date, id, position } = city;
 
-  console.log(currentCity, city);
+  function handleClick(e){
+    e.preventDefault();
+    deleteCity(id)
+  }
+  
   return (
     <li>
       <Link
@@ -26,11 +31,24 @@ function CityItem({ city }) {
         <span className={styles.emoji}>{emoji}</span>
         <h3 className={styles.name}>{cityName}</h3>
         <time className={styles.date}>{formatDate(date)}</time>
-        <button className={styles.deleteBtn}>&times;</button>
+        <button className={styles.deleteBtn} onClick={handleClick}>&times;</button>
       </Link>
     </li>
   );
 }
+
+CityItem.propTypes = {
+  city: PropTypes.shape({
+    cityName: PropTypes.string.isRequired,
+    emoji: PropTypes.string.isRequired,
+    date: PropTypes.string.isRequired,
+    id: PropTypes.number.isRequired,
+    position: PropTypes.shape({
+      lat: PropTypes.number.isRequired,
+      lng: PropTypes.number.isRequired
+    }).isRequired
+  }).isRequired,
+};
 
 // CityItem.propTypes = {
 //   city: PropTypes.shape({
